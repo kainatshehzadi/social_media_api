@@ -4,9 +4,9 @@ from datetime import datetime
 class CommentBase(BaseModel):
     content: str
 
-class CommentCreate(CommentBase):
+class CommentCreate(BaseModel):
     post_id: int
-    author_id: int  # or get from current user session (preferable)
+    content: str
 
 class CommentUpdate(CommentBase):
     content:str

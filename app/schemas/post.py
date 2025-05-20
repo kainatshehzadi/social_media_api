@@ -1,6 +1,7 @@
 from pydantic import BaseModel, Field
 from typing import List, Optional
 from datetime import datetime
+from app.api.enum import PostVisibilityEnum
 
 class HashtagResponse(BaseModel):
     id: int
@@ -12,7 +13,7 @@ class HashtagResponse(BaseModel):
 class PostCreate(BaseModel):
     content: str
     media_urls: Optional[List[str]] = None
-    visibility: Optional[str] = "public" 
+    visibility: PostVisibilityEnum = PostVisibilityEnum.public
 
 class PostResponse(BaseModel):
     id: int

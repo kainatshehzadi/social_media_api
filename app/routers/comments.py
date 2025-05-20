@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, logger, status
+from fastapi import APIRouter, Body, Depends, HTTPException, logger, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List
 from app.crud.post import get_post_by_id
@@ -14,23 +14,30 @@ from sqlalchemy.future import select
 
 router = APIRouter(prefix="/comments", tags=["Comments"])
 
-@router.post("/posts/{post_id}/comments")
-async def add_comment(post_id: int, comment_in: CommentCreate, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
-    post = get_post_by_id(db, post_id)
+@router.post("/")
+async def add_comment(
+    comment_in: CommentCreate = Body(...),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    # Get the post by ID
+    post = await get_post_by_id(db, comment_in.post_id)
     if not post:
         raise HTTPException(status_code=404, detail="Post not found")
 
+    # Create and save the comment
     comment = Comment(
-        post_id=post_id,
-        user_id=current_user.id,
+        post_id=comment_in.post_id,
+        author_id=current_user.id,
         content=comment_in.content
     )
     db.add(comment)
-    db.commit()
-    
-    #  Notify post owner
+    await db.commit()
+    await db.refresh(comment)
+
+    # Notify the post owner (if not the current user)
     if post.user_id != current_user.id:
-        recipient = db.query(User).filter(User.id == post.user_id).first()
+        recipient = await db.get(User, post.user_id)
         if recipient and recipient.player_id:
             from app.utils.notification import send_onesignal_notification
             await send_onesignal_notification(
@@ -38,10 +45,8 @@ async def add_comment(post_id: int, comment_in: CommentCreate, current_user: Use
                 heading="New Comment",
                 content=f"{current_user.username} commented on your post"
             )
-    
-    return {"message": "Comment added"}
 
-
+    return {"message": "Comment added successfully"}
 @router.get("/post/{post_id}", response_model=List[CommentResponse])
 async def read_comments(
     post_id: int,

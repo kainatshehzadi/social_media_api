@@ -4,6 +4,7 @@ from typing import Optional, Dict
 
 class NotificationBase(BaseModel):
     type: str
+    content:str
     data: Optional[Dict] = None
 
 class NotificationCreate(NotificationBase):

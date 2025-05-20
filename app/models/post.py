@@ -1,6 +1,9 @@
 from datetime import datetime, timezone
-from sqlalchemy import ARRAY, TIMESTAMP, Column, Integer, String, Text, ForeignKey, DateTime
+from sqlalchemy import ARRAY, TIMESTAMP, Column, Integer, String, Text, ForeignKey
+from sqlalchemy import Enum as SQLAlchemyEnum
+
 from sqlalchemy.orm import relationship
+from app.api.enum import PostVisibilityEnum
 from app.db.database import Base
 from app.models.posttag import post_hashtags
 class Post(Base):
@@ -10,7 +13,7 @@ class Post(Base):
     author_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     content = Column(Text, nullable=False)
     media_urls = Column(ARRAY(String),nullable=True)
-    visibility = Column(String, default="public")
+    visibility = Column(SQLAlchemyEnum(PostVisibilityEnum),default=PostVisibilityEnum.public)
     created_at = Column(TIMESTAMP(timezone=True), default=datetime.now(timezone.utc))
     updated_at = Column(TIMESTAMP(timezone=True), default=datetime.now(timezone.utc))
 

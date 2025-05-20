@@ -1,7 +1,7 @@
 import random
 import string
 import traceback
-from sqlalchemy import select,func
+from sqlalchemy import or_, select,func
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException, status
@@ -30,7 +30,7 @@ async def create_post(db: AsyncSession, post_data: PostCreate, user_id: int) -> 
         await db.rollback()
         raise HTTPException(status_code=400, detail="Database error occurred while creating post.")
     
-async def get_post_by_id(post_id: int, db: AsyncSession) -> Post:
+async def get_post_by_id(db: AsyncSession, post_id: int) -> Post:
     post = await db.get(Post, post_id)
     if not post:
         raise HTTPException(
@@ -74,27 +74,20 @@ async def get_feed_posts(db: AsyncSession, user_id: int) -> list[Post]:
     return result.scalars().all()
 
 
-async def search_posts_by_hashtag_fuzzy(db: AsyncSession, keyword: str):
-    # Step 1: Fuzzy match hashtags
-    result = await db.execute(
-        select(Hashtag).where(Hashtag.tag.ilike(f"%{keyword.lower()}%"))
+async def search_posts_by_hashtag_or_content(db: AsyncSession, keyword: str):
+    pattern = f"%{keyword.lower()}%"
+    stmt = (
+        select(Post)
+        .outerjoin(Post.hashtags)
+        .filter(
+            or_(
+                Hashtag.tag.ilike(pattern),
+                Post.content.ilike(pattern),
+            )
+        )
+        .options(selectinload(Post.hashtags))
+        .distinct()
     )
-    matching_tags = result.scalars().all()
-
-    if not matching_tags:
-        # Step 2: Save the searched tag as new if not found
-        new_tag = Hashtag(tag=keyword.lower())
-        db.add(new_tag)
-        await db.commit()
-        return []  # No posts found
-
-    # Step 3: Get all matching posts
-    all_posts = []
-    for tag in matching_tags:
-        await db.refresh(tag)  # ensure relationships are loaded
-        all_posts.extend(tag.posts)
-
-    # Optional: remove duplicates
-    unique_posts = list({post.id: post for post in all_posts}.values())
-
-    return unique_posts
+    result = await db.execute(stmt)
+    posts = result.scalars().all()
+    return posts
