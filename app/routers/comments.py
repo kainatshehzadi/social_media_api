@@ -4,7 +4,7 @@ from typing import List
 from app.crud.post import get_post_by_id
 from app.models.comments import Comment
 from app.schemas.comments import CommentCreate, CommentResponse, CommentUpdate
-from app.crud.comments import create_comment, get_comments_by_post, get_player_id_by_user_id, update_comment, delete_comment, get_comment_by_id
+from app.crud.comments import create_comment, get_comments_by_post, update_comment, delete_comment, get_comment_by_id
 from app.db.database import get_db
 from app.models.user import User
 from app.models.post import Post
