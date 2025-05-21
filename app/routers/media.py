@@ -1,4 +1,3 @@
-# app/routers/media.py
 from fastapi import APIRouter, UploadFile, File, BackgroundTasks, Depends
 from media.files import validate_file, save_file
 from app.crud.user import get_current_user
